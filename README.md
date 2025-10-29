@@ -1,0 +1,2 @@
+# TimeBasedConsumableEnhance
+这是一个将随开随用型消耗品的最短作用时间更加清晰地显示在消耗品面板上的战舰世界Mod
