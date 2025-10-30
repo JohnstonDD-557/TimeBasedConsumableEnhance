@@ -1,4 +1,6 @@
 # mod
+(def constant The_MinimumWorkTime_Context 'IDS_PARAMS_MODIFIER_MINWORKTIME') 	#最短作用时间
+ 
 (def css $TextColorCantUseFx ()
 	(textColor = 0xFF0797FA)
 )
@@ -174,8 +176,10 @@
 
 		# 最短使用时长(str)
 		(var measuredValue:str = "_attribute.measuredValue")
-		# 最短使用时长(num)
-		(var minUsageTime:number = "toNumber(measuredValue)")
+		# 最短使用时长(num)(若无最短使用时长的描述,则将最短使用时长设为0)
+		(var minUsageTime:number = "(tr(The_MinimumWorkTime_Context) in _attribute.attributeIDS) ? toNumber(measuredValue) : 0")
+
+		
 		#剩余时间
 		(var remainTime_TimeBased:number = "minUsageTime + cantclosetime_countdown - cantclosetime")
 		#剩余时间百分比
@@ -185,6 +189,7 @@
 		(var CantCloseFlag:bool = "true")
 		(var showTimeFlag:bool = "true")
 		(var LastTimeFlag:bool = "false")
+		(var BridgeportFlag:bool = "tr(The_MinimumWorkTime_Context) in _attribute.attributeIDS")
 		#  modend
 	)
 
@@ -245,7 +250,7 @@
 					(bind _showTime "showTimeFlag")
 				)
 				(class $FullsizeAbsolute)
-				(bind visible "CantCloseFlag && isTimeBased && atWork && !LastTimeFlag")
+				(bind visible "CantCloseFlag && isTimeBased && atWork && !LastTimeFlag && BridgeportFlag")
 			)
 		
 
