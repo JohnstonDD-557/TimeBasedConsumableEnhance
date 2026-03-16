@@ -136,7 +136,13 @@
 		(var ownerSquadronId:number = "battleConsumable.ownerSquadronId" (event "battleConsumable.evStateChanged"))
 		(var consumableIndex:number = "battleConsumable.index"  (event "battleConsumable.evStateChanged"))
 		(var isLocked:bool = "battleConsumable.isLocked" (event "battleConsumable.evIsLockedChanged"))
-		(var isSpecial:bool = "battleConsumable.isSpecial")
+
+		
+		(var availableActivationModes:array = "battleConsumable.viewData.availableActivationModes" (event "battleConsumable.evViewDataChanged"))
+		(var isAutoActivationAvailable:bool = "SC.Ships.CONSUMABLE_ACTIVATION_MODE.AUTO in availableActivationModes" (event "battleConsumable.evViewDataChanged"))
+
+		(var selectedActivationMode:number = "battleConsumable.selectedActivationMode"  (event "battleConsumable.evSelectedActivationModeChanged"))
+		(var isInAutoActivationMode:bool = "selectedActivationMode == SC.Ships.CONSUMABLE_ACTIVATION_MODE.AUTO" (event "battleConsumable.evSelectedActivationModeChanged"))
 
 		(var isTimeBased:bool = "battleConsumable.viewData.lifecycleType == SC.Battle.CONSUMABLE_LIFECYCLE_TYPE.TIME_BASED")
 
@@ -151,14 +157,15 @@
 		(var itemImageUrl:str = "'url:../consumables/' + consumableName + consumePostfix + '.png'")
 		
 		(var timerEntity:gfx = "$datahub.getSingleEntity(CC.timer)")
-		(var countdown:gfx = "consumableEntity && consumableEntity.hasComponent(CC.countDown) ? consumableEntity.countDown : null" (event "consumableEntity.evAdded") (event "consumableEntity.evRemoved"))		
-		(var remainTime:number = "countdown ? countdown.endTime - timerEntity.timer.currentTime : 0" (event "timerEntity.timer.evFrequent") (event "countdown.evEndTimeChanged"))
-		(var infiniteWorkTime:bool = "countdown && countdown.duration == -1" (event "consumableEntity.evAdded") (event "consumableEntity.evRemoved"))
-		(var percentPassed:number = "countdown && !infiniteWorkTime ? remainTime / countdown.duration : 1")
+		(var countdown:gfx = "consumableEntity && consumableEntity.hasComponent(CC.countDown) ? consumableEntity.countDown : null" (event "consumableEntity.evAdded") (event "consumableEntity.evRemoved"))
+		(var endTime:number = "countdown ? countdown.endTime : 1" (event "countdown.evEndTimeChanged"))
+		(var remainTime:number = "countdown ? endTime - timerEntity.timer.currentTime : 0" (event "timerEntity.timer.evFrequent") (event "countdown.evEndTimeChanged"))
+		(var duration:number = "countdown ? countdown.duration : 1" (event "countdown.evDurationChanged"))
+		(var infiniteWorkTime:bool = "countdown && duration == -1" (event "consumableEntity.evAdded") (event "consumableEntity.evRemoved"))
+		(var percentPassed:number = "countdown && !infiniteWorkTime ? remainTime / duration : 1")
 
 		(var cmdEntity:gfx =  "$datahub.getPrimaryEntity(CC.commandMappingCommandName, consumableCmd)")
-		(var isRegularAircarrierAbil:bool = "isAircarrier && !isSpecial")
-		(var commandId:number = "isRegularAircarrierAbil ? 0 : cmdEntity.commandMappingCommand.id" (event  "cmdEntity.commandMappingCommand.evChanged"))
+		(var commandId:number = "cmdEntity.commandMappingCommand.id" (event  "cmdEntity.commandMappingCommand.evChanged"))
 
 		(var _width:number = "SLOT_SIZE")
 		(var _height:number = "SLOT_SIZE")
@@ -172,7 +179,7 @@
 		(var usageNeutral:array = "usageAttributes.neutral" (event "battleConsumable.evCurrentChargeeChanged") (event "battleConsumable.evReloadTimeCoeffChanged") (event "battleConsumable.evWorkTimeCoeffChanged"))
 
 		# (var _attributesNeutral:array = "usageNeutral")
-		(var _attribute:dict = "usageNeutral[1]")
+		(var _attribute:dict = "usageNeutral[1]") 	# 最短使用时长对应的描述(计划修改为遍历后选出,待定)
 
 		# 最短使用时长(str)
 		(var measuredValue:str = "_attribute.measuredValue")
@@ -201,7 +208,7 @@
 
 	
 	(controller $Instance renderer='LabelAuto'
-		(bind enabled "commandId == 0")
+		(bind enabled "isInAutoActivationMode")
 	)
 
 	(block
@@ -293,6 +300,15 @@
 
 		
 		(block
+			(bind visible "isAutoActivationAvailable")
+			(class $FullsizeAbsolute)
+			(style
+				(backgroundImage = 'url:../consumables/features/auto_activation.png')
+			)
+		)
+
+		
+		(block
 			(class $FullsizeAbsolute)
 			(controller $FxInstance lifetime=0.5
 				(bind renderer 'SlotWorkStartedFX')
@@ -309,12 +325,10 @@
 				(bind renderer "'SlotReloadStartedFX'")
 				(bindcall create (event "consumableEntity.battleConsumable.evReloadStarted"))
 			)
-			(controller $FxInstance lifetime=10.5
+			(controller $FxInstance lifetime=0.5
 				(bind renderer 'SlotWorkStartedFX')
-				(bind renderer 'SlotWorkTimeFinishedFX')
 				(args
 					accented="true"
-					zhuangtai="atWork"
 				)
 				(bindcall create (event "consumableEntity.timeBasedFeedback.evMinWorkTimeFinished"))
 			)
@@ -349,7 +363,7 @@
 	)
 
 	(element HIT_TEST_TOOLTIP_CONTAINER
-		(macro MOUSE_LMB_EXTERNAL_CALL 'direct.action' "['battle.useConsumable', [{consumableIndex: consumableIndex, squadronId: ownerSquadronId}]]" "!isRegularAircarrierAbil")
+		(macro MOUSE_LMB_EXTERNAL_CALL 'direct.action' "['battle.useConsumable', [{consumableIndex: consumableIndex, squadronId: ownerSquadronId}]]" "!isInAutoActivationMode")
 		
 		(controller $Tooltip (renderer = 'BattleConsumableTooltip')
 			(args
@@ -369,7 +383,7 @@
 
 	
 	(controller $Instance (renderer = 'HotkeyIndicator')
-		(bind enabled "commandId && !isRegularAircarrierAbil")
+		(bind enabled "!isInAutoActivationMode")
 		(args _commandId="commandId" _toggled="atWork")
 		(exprs
 			(style
